@@ -33,7 +33,6 @@ type Snake struct {
     direction Direction
     body []Cell
     char rune
-    lenght int
 }
 
 type Food struct {
@@ -49,6 +48,36 @@ type Game struct {
     }
     s_cols int
     s_rows int
+    over bool
+}
+
+func (g *Game) ChangeSnakeDir(d Direction) {
+    switch d {
+    case Right:
+        if g.snake.direction == Left {
+            g.snake.direction = Left
+        } else {
+            g.snake.direction = Right
+        }
+    case Left:
+        if g.snake.direction == Right {
+            g.snake.direction = Right
+        } else {
+            g.snake.direction = Left
+        }
+    case Down:
+        if g.snake.direction == Up {
+            g.snake.direction = Up
+        } else {
+            g.snake.direction = Down
+        }
+    case Up:
+        if g.snake.direction == Down {
+            g.snake.direction = Down
+        } else {
+            g.snake.direction = Up
+        }
+    }
 }
 
 func (g *Game) MoveSnake() {
@@ -115,22 +144,42 @@ func (g *Game) CheckCollison() {
 
         g.NewFood()
     }
+
+    for i := range len(g.snake.body) {
+        if g.pos.x == g.snake.body[i].x && g.pos.y == g.snake.body[i].y {
+            g.over = true
+        }
+    }
 }
 
 func draw(g *Game, s tcell.Screen) {
     for {
-        g.MoveSnake()
-        g.CheckCollison()
-
         s.Clear()
 
-        for i := range len(g.snake.body) {
-            s.SetContent(g.snake.body[i].x, g.snake.body[i].y, g.snake.char, nil, g.snake.body[i].color)
-            s.SetContent(g.snake.body[i].x + 1, g.snake.body[i].y, g.snake.char, nil, g.snake.body[i].color)
-        }
+        switch g.over {
+        case true:
+            msg := "Game Over"
+            msg2 := "Press [ESC] to exit"
 
-        s.SetContent(g.food.cell.x, g.food.cell.y, g.food.char, nil, g.food.cell.color)
-        s.SetContent(g.food.cell.x + 1, g.food.cell.y, g.food.char, nil, g.food.cell.color)
+            for i, r := range msg {
+                s.SetContent((g.s_cols / 2) - (len(msg) / 2) + i, g.s_rows / 2, r, nil, RED.Bold(true))
+            }
+
+            for i, r := range msg2 {
+                s.SetContent((g.s_cols / 2) - (len(msg2) / 2) + i, g.s_rows / 2 + 1, r, nil, tcell.StyleDefault)
+            }
+        case false:
+            g.MoveSnake()
+            g.CheckCollison()
+
+            for i := range len(g.snake.body) {
+                s.SetContent(g.snake.body[i].x, g.snake.body[i].y, g.snake.char, nil, g.snake.body[i].color)
+                s.SetContent(g.snake.body[i].x + 1, g.snake.body[i].y, g.snake.char, nil, g.snake.body[i].color)
+            }
+
+            s.SetContent(g.food.cell.x, g.food.cell.y, g.food.char, nil, g.food.cell.color)
+            s.SetContent(g.food.cell.x + 1, g.food.cell.y, g.food.char, nil, g.food.cell.color)
+        }
 
         s.Show()
 
@@ -147,7 +196,6 @@ func main() {
     g := Game {
         snake: Snake {
             char: '█',
-            lenght: 5,
             direction: Right,
             body: []Cell {
                 {x: 0, y: 0, color: GREEN},
@@ -166,6 +214,7 @@ func main() {
         },
         s_cols: cols,
         s_rows: rows,
+        over: false,
     }
 
     s.Clear()
@@ -181,32 +230,24 @@ func main() {
             case tcell.KeyEscape:
                 s.Fini()
                 os.Exit(0)
+            case tcell.KeyRight:
+                g.ChangeSnakeDir(Right)
+            case tcell.KeyLeft:
+                g.ChangeSnakeDir(Left)
+            case tcell.KeyDown:
+                g.ChangeSnakeDir(Down)
+            case tcell.KeyUp:
+                g.ChangeSnakeDir(Up)
             case tcell.KeyRune:
                 switch ev.Rune() {
                 case 'l':
-                    if g.snake.direction == Left {
-                        g.snake.direction = Left
-                    } else {
-                        g.snake.direction = Right
-                    }
+                    g.ChangeSnakeDir(Right)
                 case 'h':
-                    if g.snake.direction == Right {
-                        g.snake.direction = Right
-                    } else {
-                        g.snake.direction = Left
-                    }
+                    g.ChangeSnakeDir(Left)
                 case 'j':
-                    if g.snake.direction == Up {
-                        g.snake.direction = Up
-                    } else {
-                        g.snake.direction = Down
-                    }
+                    g.ChangeSnakeDir(Down)
                 case 'k':
-                    if g.snake.direction == Down {
-                        g.snake.direction = Down
-                    } else {
-                        g.snake.direction = Up
-                    }
+                    g.ChangeSnakeDir(Up)
                 }
             }
         }
