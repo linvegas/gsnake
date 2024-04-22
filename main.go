@@ -2,8 +2,10 @@ package main
 
 import (
     "os"
+    "fmt"
     "time"
     "math/rand"
+
     "github.com/gdamore/tcell/v2"
 )
 
@@ -102,11 +104,11 @@ func (g *Game) MoveSnake() {
         g.pos.y -= 1
     }
 
-    if g.pos.x > g.s_cols {
+    if g.pos.x >= g.s_cols {
         g.pos.x = 0;
     }
     if g.pos.x < 0 {
-        g.pos.x = g.s_cols - 1
+        g.pos.x = g.s_cols
     }
     if g.pos.y >= g.s_rows {
         g.pos.y = 0;
@@ -125,7 +127,7 @@ func randomPosition(limit int) int {
 }
 
 func (g *Game) NewFood() {
-    char_options := []rune{'*', '%', '#', '=', '$', '!', 'X', '+', '~'}
+    char_options := []rune{'%', '#', '=', '$', '!', 'X', '+', '~', ':'}
     g.food.char = char_options[r.Intn(len(char_options))]
     g.food.cell.x = randomPosition(g.s_cols)
     g.food.cell.y = randomPosition(g.s_rows)
@@ -156,19 +158,28 @@ func draw(g *Game, s tcell.Screen) {
     for {
         s.Clear()
 
-        switch g.over {
-        case true:
-            msg := "Game Over"
-            msg2 := "Press [ESC] to exit"
+        if g.over {
+            msg1 := "Game Over"
+            msg2 := fmt.Sprintf("%v food collected", len(g.snake.body) - 1)
+            msg3 := "Press [ESC] to exit"
+            msg4 := "Press [r] to try again"
 
-            for i, r := range msg {
-                s.SetContent((g.s_cols / 2) - (len(msg) / 2) + i, g.s_rows / 2, r, nil, RED.Bold(true))
+            for i, r := range msg1 {
+                s.SetContent((g.s_cols / 2) - (len(msg1) / 2) + i, g.s_rows / 2 - 2, r, nil, RED.Bold(true))
             }
 
             for i, r := range msg2 {
-                s.SetContent((g.s_cols / 2) - (len(msg2) / 2) + i, g.s_rows / 2 + 1, r, nil, tcell.StyleDefault)
+                s.SetContent((g.s_cols / 2) - (len(msg2) / 2) + i, g.s_rows / 2 - 1, r, nil, tcell.StyleDefault)
             }
-        case false:
+
+            for i, r := range msg3 {
+                s.SetContent((g.s_cols / 2) - (len(msg3) / 2) + i, g.s_rows / 2 + 1, r, nil, tcell.StyleDefault)
+            }
+
+            for i, r := range msg4 {
+                s.SetContent((g.s_cols / 2) - (len(msg4) / 2) + i, g.s_rows / 2 + 2, r, nil, tcell.StyleDefault)
+            }
+        } else {
             g.MoveSnake()
             g.CheckCollison()
 
@@ -193,6 +204,10 @@ func main() {
 
     cols, rows := s.Size()
 
+    if cols % 2 != 0 {
+        cols--
+    }
+
     g := Game {
         snake: Snake {
             char: '█',
@@ -205,7 +220,7 @@ func main() {
             char: '*',
             cell: Cell {
                 x: 20, y: 5,
-                color: RED,
+                color: RED.Bold(true),
             },
         },
         pos: struct { x, y int }{
@@ -225,6 +240,14 @@ func main() {
         switch ev := s.PollEvent().(type) {
         case *tcell.EventResize:
             s.Sync()
+            cols, rows := s.Size()
+
+            if cols % 2 != 0 {
+                cols--
+            }
+
+            g.s_cols = cols
+            g.s_rows = rows
         case *tcell.EventKey:
             switch ev.Key() {
             case tcell.KeyEscape:
@@ -248,6 +271,18 @@ func main() {
                     g.ChangeSnakeDir(Down)
                 case 'k':
                     g.ChangeSnakeDir(Up)
+                case 'r':
+                    if g.over {
+                        g.snake.body = []Cell {
+                            {x: 0, y: 0, color: GREEN},
+                        }
+                        g.pos = struct { x, y int }{
+                            x: randomPosition(g.s_cols),
+                            y: randomPosition(g.s_rows),
+                        }
+                        g.snake.direction = Right
+                        g.over = false
+                    }
                 }
             }
         }
