@@ -13,7 +13,7 @@ https://github.com/linvegas/gsnake/assets/92128913/1d59bf33-1ed0-4204-850c-d5b3d
 You need to have go installed in your system, of course.
 
 ```console
-go run main.c
+go run main.go
 ```
 
 ## Building
