@@ -198,9 +198,34 @@ func draw(g *Game, s tcell.Screen) {
     }
 }
 
+func usage(program string) {
+    fmt.Printf ("%s <options>\n", program)
+    fmt.Println("To control the snake, use the arrow keys or vim movements")
+    fmt.Println("")
+    fmt.Println("Options:")
+    fmt.Println("   -h|--help: show program usage")
+}
+
 func main() {
-    s, _ := tcell.NewScreen()
-    s.Init()
+    args := os.Args
+
+    if len(args) > 1 {
+        if args[1] == "-h" || args[1] == "--help" {
+            usage(args[0])
+            os.Exit(0)
+        }
+    }
+
+    s, err := tcell.NewScreen()
+    if err != nil {
+        fmt.Fprintf(os.Stderr, "%v\n", err)
+        os.Exit(1)
+    }
+
+    if err := s.Init(); err != nil {
+        fmt.Fprintf(os.Stderr, "%v\n", err)
+        os.Exit(1)
+    }
 
     cols, rows := s.Size()
 
