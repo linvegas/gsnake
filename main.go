@@ -13,6 +13,8 @@ var (
     GREEN = tcell.StyleDefault.Foreground(tcell.ColorGreen)
     GREY = tcell.StyleDefault.Foreground(tcell.ColorGrey)
     RED = tcell.StyleDefault.Foreground(tcell.ColorRed)
+
+    WALL = false
 )
 
 var r = rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -129,8 +131,30 @@ func randomPosition(limit int) int {
 func (g *Game) NewFood() {
     char_options := []rune{'%', '#', '=', '$', '!', 'X', '+', '~', ':'}
     g.food.char = char_options[r.Intn(len(char_options))]
-    g.food.cell.x = randomPosition(g.s_cols)
-    g.food.cell.y = randomPosition(g.s_rows)
+
+    if WALL {
+        foodX := randomPosition(g.s_cols)
+        if foodX == 0 {
+            foodX += 2
+        }
+        if foodX == g.s_cols - 2 {
+            foodX -= 2
+        }
+
+        foodY := randomPosition(g.s_rows)
+        if foodY == 0 {
+            foodY += 1
+        }
+        if foodY == g.s_rows {
+            foodY -= 1
+        }
+
+        g.food.cell.x = foodX
+        g.food.cell.y = foodY
+    } else {
+        g.food.cell.x = randomPosition(g.s_cols)
+        g.food.cell.y = randomPosition(g.s_rows)
+    }
 }
 
 func (g *Game) CheckCollison() {
@@ -148,6 +172,12 @@ func (g *Game) CheckCollison() {
     }
 
     for i := range len(g.snake.body) {
+        if WALL {
+            if g.pos.x == g.s_cols - 2 || g.pos.x == 0 || g.pos.y == g.s_rows - 1 || g.pos.y == 0 {
+                g.over = true
+            }
+        }
+
         if g.pos.x == g.snake.body[i].x && g.pos.y == g.snake.body[i].y {
             g.over = true
         }
@@ -183,6 +213,17 @@ func draw(g *Game, s tcell.Screen) {
             g.MoveSnake()
             g.CheckCollison()
 
+            if WALL {
+                for i := 0; i < g.s_cols - 1; i++ {
+                    for j := 0; j < g.s_rows; j++ {
+                        if j == 0 || j == g.s_rows - 1 || i == 0 || i == g.s_cols - 2 {
+                            s.SetContent(i, j, '░', nil, tcell.StyleDefault)
+                            s.SetContent(i + 1, j, '░', nil, tcell.StyleDefault)
+                        }
+                    }
+                }
+            }
+
             for i := range len(g.snake.body) {
                 s.SetContent(g.snake.body[i].x, g.snake.body[i].y, g.snake.char, nil, g.snake.body[i].color)
                 s.SetContent(g.snake.body[i].x + 1, g.snake.body[i].y, g.snake.char, nil, g.snake.body[i].color)
@@ -190,6 +231,7 @@ func draw(g *Game, s tcell.Screen) {
 
             s.SetContent(g.food.cell.x, g.food.cell.y, g.food.char, nil, g.food.cell.color)
             s.SetContent(g.food.cell.x + 1, g.food.cell.y, g.food.char, nil, g.food.cell.color)
+
         }
 
         s.Show()
@@ -199,20 +241,28 @@ func draw(g *Game, s tcell.Screen) {
 }
 
 func usage(program string) {
-    fmt.Printf ("%s <options>\n", program)
+    fmt.Printf ("USAGE: %s <options>\n", program)
     fmt.Println("To control the snake, use the arrow keys or vim movements")
     fmt.Println("")
     fmt.Println("Options:")
-    fmt.Println("   -h|--help: show program usage")
+    fmt.Println("   -h | --help: show program usage")
+    fmt.Println("   -w | --wall: you loose if snake hist the wall")
 }
 
 func main() {
     args := os.Args
 
     if len(args) > 1 {
-        if args[1] == "-h" || args[1] == "--help" {
+        switch args[1] {
+        case "-h", "--help":
             usage(args[0])
             os.Exit(0)
+        case "-w", "--wall":
+            WALL = true
+        default:
+            fmt.Fprintf(os.Stderr, "Incorrect argument: %v\n\n", args[1])
+            usage(args[0])
+            os.Exit(1)
         }
     }
 
@@ -249,8 +299,8 @@ func main() {
             },
         },
         pos: struct { x, y int }{
-            x: randomPosition(cols),
-            y: randomPosition(rows),
+            x: 2,
+            y: randomPosition(rows - 1) + 1,
         },
         s_cols: cols,
         s_rows: rows,
@@ -302,8 +352,8 @@ func main() {
                             {x: 0, y: 0, color: GREEN},
                         }
                         g.pos = struct { x, y int }{
-                            x: randomPosition(g.s_cols),
-                            y: randomPosition(g.s_rows),
+                            x: 2,
+                            y: randomPosition(g.s_rows - 1) + 1,
                         }
                         g.snake.direction = Right
                         g.over = false
